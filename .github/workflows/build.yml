@@ -1,4 +1,4 @@
-name: Build 3DS ELF (no Makefile)
+name: Build 3DS ELF
 
 on:
   push:
@@ -12,26 +12,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install devkitPro
+      - name: Add devkitPro repo
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget git xz-utils
+          sudo apt-get install -y ca-certificates curl gnupg
 
-          wget https://apt.devkitpro.org/install-devkitpro-pacman
-          chmod +x install-devkitpro-pacman
-          sudo ./install-devkitpro-pacman
+          echo "deb https://apt.devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
 
-      - name: Install 3DS toolchain
+          curl -fsSL https://apt.devkitpro.org/devkitpro-pub.gpg | sudo gpg --dearmor -o /usr/share/keyrings/devkitpro.gpg
+
+          echo "deb [signed-by=/usr/share/keyrings/devkitpro.gpg] https://apt.devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
+
+      - name: Install devkitPro + 3DS tools
         run: |
-          sudo dkp-pacman -Sy
+          sudo apt-get update
+          sudo apt-get install -y devkitpro-pacman
+          sudo dkp-pacman -Syu --noconfirm
           sudo dkp-pacman -S --noconfirm 3ds-dev
 
-      - name: Compile manually (NO MAKEFILE)
+      - name: Compile ELF
         run: |
           export DEVKITPRO=/opt/devkitpro
           export DEVKITARM=/opt/devkitpro/devkitARM
-
-          mkdir -p build
 
           arm-none-eabi-g++ \
             -I$DEVKITPRO/libctru/include \
@@ -47,5 +49,5 @@ jobs:
       - name: Upload ELF
         uses: actions/upload-artifact@v4
         with:
-          name: Katto3DS-elf
+          name: Katto3DS
           path: Katto3DS.elf
