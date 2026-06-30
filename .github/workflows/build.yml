@@ -1,4 +1,4 @@
-name: Build 3DS (macOS + brew)
+name: 3DS Build
 
 on:
   push:
@@ -6,26 +6,24 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install devkitPro via brew
+      - name: Install devkitPro
         run: |
-          brew tap devkitpro/devkitpro
-          brew install devkitarm devkitpro-pacman
+          sudo apt-get update
+          sudo apt-get install -y devkitpro-pacman
 
       - name: Install 3DS tools
         run: |
-          dkp-pacman -Syu --noconfirm
-          dkp-pacman -S --noconfirm 3ds-dev
+          sudo dkp-pacman -Syu --noconfirm
+          sudo dkp-pacman -S --noconfirm 3ds-dev
 
-      - name: Build ELF
+      - name: Build
         run: |
-          export DEVKITPRO=$(brew --prefix devkitpro)
-          export DEVKITARM=$DEVKITPRO/devkitARM
+          export DEVKITPRO=/opt/devkitpro
 
           arm-none-eabi-g++ \
             -I$DEVKITPRO/libctru/include \
@@ -34,8 +32,7 @@ jobs:
             -L$DEVKITPRO/libctru/lib \
             -lctru -o Katto3DS.elf
 
-      - name: Upload ELF
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: Katto3DS
           path: Katto3DS.elf
