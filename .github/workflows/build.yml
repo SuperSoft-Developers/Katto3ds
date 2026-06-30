@@ -1,0 +1,51 @@
+name: Build 3DS ELF (no Makefile)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install devkitPro
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget git xz-utils
+
+          wget https://apt.devkitpro.org/install-devkitpro-pacman
+          chmod +x install-devkitpro-pacman
+          sudo ./install-devkitpro-pacman
+
+      - name: Install 3DS toolchain
+        run: |
+          sudo dkp-pacman -Sy
+          sudo dkp-pacman -S --noconfirm 3ds-dev
+
+      - name: Compile manually (NO MAKEFILE)
+        run: |
+          export DEVKITPRO=/opt/devkitpro
+          export DEVKITARM=/opt/devkitpro/devkitARM
+
+          mkdir -p build
+
+          arm-none-eabi-g++ \
+            -I$DEVKITPRO/libctru/include \
+            -O2 -Wall -std=c++17 \
+            source/main.cpp \
+            source/game.cpp \
+            source/map.cpp \
+            source/player.cpp \
+            -L$DEVKITPRO/libctru/lib \
+            -lctru -lm \
+            -o Katto3DS.elf
+
+      - name: Upload ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: Katto3DS-elf
+          path: Katto3DS.elf
