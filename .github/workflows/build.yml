@@ -1,4 +1,4 @@
-name: Build 3DS ELF
+name: Build 3DS (macOS + brew)
 
 on:
   push:
@@ -6,45 +6,33 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Add devkitPro repo
+      - name: Install devkitPro via brew
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates curl gnupg
+          brew tap devkitpro/devkitpro
+          brew install devkitarm devkitpro-pacman
 
-          echo "deb https://apt.devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
-
-          curl -fsSL https://apt.devkitpro.org/devkitpro-pub.gpg | sudo gpg --dearmor -o /usr/share/keyrings/devkitpro.gpg
-
-          echo "deb [signed-by=/usr/share/keyrings/devkitpro.gpg] https://apt.devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
-
-      - name: Install devkitPro + 3DS tools
+      - name: Install 3DS tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y devkitpro-pacman
-          sudo dkp-pacman -Syu --noconfirm
-          sudo dkp-pacman -S --noconfirm 3ds-dev
+          dkp-pacman -Syu --noconfirm
+          dkp-pacman -S --noconfirm 3ds-dev
 
-      - name: Compile ELF
+      - name: Build ELF
         run: |
-          export DEVKITPRO=/opt/devkitpro
-          export DEVKITARM=/opt/devkitpro/devkitARM
+          export DEVKITPRO=$(brew --prefix devkitpro)
+          export DEVKITARM=$DEVKITPRO/devkitARM
 
           arm-none-eabi-g++ \
             -I$DEVKITPRO/libctru/include \
-            -O2 -Wall -std=c++17 \
-            source/main.cpp \
-            source/game.cpp \
-            source/map.cpp \
-            source/player.cpp \
+            -O2 -std=c++17 \
+            source/*.cpp \
             -L$DEVKITPRO/libctru/lib \
-            -lctru -lm \
-            -o Katto3DS.elf
+            -lctru -o Katto3DS.elf
 
       - name: Upload ELF
         uses: actions/upload-artifact@v4
